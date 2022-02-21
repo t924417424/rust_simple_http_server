@@ -1,0 +1,2 @@
+[workspace]
+members = ["simple_http", "http","thread_pool"]
