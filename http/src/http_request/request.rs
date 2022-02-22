@@ -2,11 +2,11 @@ use crate::http_request::request_header::*;
 use std::collections::HashMap;
 #[derive(Debug, PartialEq)]
 pub struct HttpResuest {
-    pub method: Method,
-    pub uri: Resouse,
-    pub version: Version,
-    pub headers: HashMap<String, String>,
-    pub body: Option<String>,
+    method: Method,
+    uri: String,
+    version: Version,
+    headers: HashMap<String, String>,
+    body: Option<String>,
 }
 
 impl From<String> for HttpResuest {
@@ -56,11 +56,26 @@ impl HttpResuest {
     }
 }
 
+impl HttpResuest {
+    pub fn get_header(&self, key: &str) -> Option<&str> {
+        self.headers.get(key).map(|value| value.as_str())
+    }
+    pub fn get_uri(&self) -> &str {
+        self.uri.as_str()
+    }
+    pub fn get_header_all(&self) -> &HashMap<String, String> {
+        &self.headers
+    }
+    pub fn get_body(&self) -> Option<&str> {
+        self.body.as_ref().map(|value| value.as_str())
+    }
+}
+
 impl Default for HttpResuest {
     fn default() -> Self {
         HttpResuest {
             method: Method::GET,
-            uri: Resouse::Path("/".to_string()),
+            uri: "/".to_string(),
             version: Version::V1_1,
             headers: {
                 let mut headers: HashMap<String, String> = HashMap::new();
@@ -77,8 +92,8 @@ mod test {
     use std::collections::HashMap;
 
     use crate::http_request::{
-        request_header::{Method, Resouse, Version},
         request::HttpResuest,
+        request_header::{Method, Version},
     };
 
     #[test]
@@ -86,7 +101,7 @@ mod test {
         let request_str = "GET / HTTP/1.1\r\n";
         let request = HttpResuest::from(request_str.to_string());
         assert_eq!(request.method, Method::GET);
-        assert_eq!(request.uri, Resouse::Path("/".to_string()));
+        assert_eq!(request.uri, "/".to_string());
         assert_eq!(request.version, Version::V1_1);
         assert_eq!(request.headers, HashMap::new());
         assert_eq!(request.body, None);
@@ -99,7 +114,7 @@ mod test {
         let mut header = HashMap::new();
         header.insert("Content-Type".to_string(), "text/html".to_string());
         assert_eq!(request.method, Method::GET);
-        assert_eq!(request.uri, Resouse::Path("/".to_string()));
+        assert_eq!(request.uri, "/".to_string());
         assert_eq!(request.version, Version::V1_1);
         assert_eq!(request.headers, header);
         assert_eq!(request.body, Some("body".to_string()));

@@ -1,4 +1,5 @@
 use http::http_request;
+use http::http_server::server::HttpServer;
 fn main() {
     println!("Hello, world!");
     let f = |x: i32| x;
@@ -13,6 +14,10 @@ fn main() {
         12 | 11 => println!("eleven"),
         _ => println!("other"),
     }
+    let mut server = HttpServer::application();
+    server.configure(HttpServer::set_addr("127.0.0.1:8081"));
+    server.start();
+    println!("{:?}", server);
 }
 
 fn test_fn<F>(f: F, i: i32)

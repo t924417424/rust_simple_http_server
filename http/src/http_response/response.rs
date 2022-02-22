@@ -29,11 +29,17 @@ impl HttpResponse {
     pub fn new() -> Self {
         HttpResponse::default()
     }
-    pub fn write_str(&mut self, body: &str) {
-        self.body = Some(body.to_string());
+    pub fn set_http_state_code(&mut self, status_code: HttpStateCode) -> &mut Self {
+        self.status_code = status_code;
+        self
     }
-    pub fn set_header(&mut self, key: &str, value: &str) {
+    pub fn write_str(&mut self, body: &str) -> &mut Self {
+        self.body = Some(body.to_string());
+        self
+    }
+    pub fn insert_header(&mut self, key: &str, value: &str) -> &mut Self {
         self.headers.insert(key.to_string(), value.to_string());
+        self
     }
 }
 
@@ -53,8 +59,10 @@ impl From<HttpResponse> for String {
         response_str.push_str("\r\n");
         if let Some(body) = http_response.body {
             response_str.push_str(&body);
+            response_str.push_str(&format!("Content-Length: {}\r\n", body.len()));
         } else {
             response_str.push_str(&code_text);
+            response_str.push_str(&format!("Content-Length: {}\r\n", code_text.len()));
         }
         return response_str;
     }
@@ -65,7 +73,7 @@ mod test {
     #[test]
     fn test_http_response_from_str() {
         let mut response = super::HttpResponse::new();
-        response.set_header("Content-Type", "text/html");
+        response.insert_header("Content-Type", "text/html");
         response.write_str("<html></html>");
         let response_str: String = response.into();
         assert_eq!(
