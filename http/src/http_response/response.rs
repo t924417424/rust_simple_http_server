@@ -56,13 +56,17 @@ impl From<HttpResponse> for String {
         for (key, value) in http_response.headers.iter() {
             response_str.push_str(&format!("{}: {}\r\n", key, value));
         }
+        let content_length = http_response
+            .body
+            .as_ref()
+            .map(|value| value.len())
+            .unwrap_or(code_text.len());
+        response_str.push_str(&format!("Content-Length: {}\r\n", content_length));
         response_str.push_str("\r\n");
         if let Some(body) = http_response.body {
             response_str.push_str(&body);
-            response_str.push_str(&format!("Content-Length: {}\r\n", body.len()));
         } else {
             response_str.push_str(&code_text);
-            response_str.push_str(&format!("Content-Length: {}\r\n", code_text.len()));
         }
         return response_str;
     }
