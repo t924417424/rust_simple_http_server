@@ -1,15 +1,18 @@
 use crate::http_request::request_header::*;
 use std::collections::HashMap;
+
+use super::extend::HttpResuestExtend;
 #[derive(Debug, PartialEq)]
-pub struct HttpResuest {
+pub struct HttpResuest<'a> {
     method: Method,
     uri: String,
     version: Version,
     headers: HashMap<String, String>,
     body: Option<String>,
+    more: HashMap<&'a str, String>,
 }
 
-impl From<String> for HttpResuest {
+impl<'a> From<String> for HttpResuest<'a> {
     fn from(request: String) -> Self {
         let request_default = HttpResuest::default();
         if request.contains("HTTP/") {
@@ -19,7 +22,7 @@ impl From<String> for HttpResuest {
     }
 }
 
-impl HttpResuest {
+impl<'a> HttpResuest<'a> {
     fn parse_request(request: &str) -> Self {
         // 空行之后是body内容
         let mut empty_line = false;
@@ -52,11 +55,12 @@ impl HttpResuest {
             version: version.into(),
             headers: headers,
             body,
+            more: HashMap::new(),
         }
     }
 }
 
-impl HttpResuest {
+impl<'a> HttpResuest<'a> {
     pub fn get_header(&self, key: &str) -> Option<&str> {
         self.headers.get(key).map(|value| value.as_str())
     }
@@ -71,7 +75,17 @@ impl HttpResuest {
     }
 }
 
-impl Default for HttpResuest {
+impl<'a> HttpResuestExtend for HttpResuest<'a> {
+    fn set_remote_addr(&mut self, addr: &str) {
+        self.more.insert("remote_addr", addr.to_owned());
+    }
+
+    fn get_remote_addr(&self) -> String {
+        self.more.get("remote_addr").unwrap_or(&"".to_string()).to_string()
+    }
+}
+
+impl<'a> Default for HttpResuest<'a> {
     fn default() -> Self {
         HttpResuest {
             method: Method::GET,
@@ -83,6 +97,7 @@ impl Default for HttpResuest {
                 headers
             },
             body: None,
+            more: HashMap::new(),
         }
     }
 }

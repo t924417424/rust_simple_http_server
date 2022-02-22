@@ -1,6 +1,14 @@
-use std::net::{TcpListener};
+use std::{
+    io::{Read, Write},
+    net::{TcpListener, TcpStream},
+};
 
-use crate::http_server::executor;
+use crate::{
+    http_request::{extend::HttpResuestExtend, request},
+    http_response::response::HttpResponse,
+};
+
+use super::executor::Executor;
 
 #[derive(Debug)]
 pub struct HttpServer {
@@ -23,11 +31,13 @@ impl HttpServer {
     pub fn start(&self) {
         let listener = TcpListener::bind(&self.addr).unwrap();
         println!("http server start at {}", self.addr);
+        // 在这里初始化线程池
+        if cfg!(feature = "thread-pool") {}
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
                     // stream只对当前请求有效，故在此可转移所有权而非借用
-                    executor::executor(stream);
+                    self.executor(stream);
                 }
                 Err(_e) => {
                     continue;
@@ -44,6 +54,57 @@ impl HttpServer {
         |t: &mut Self| {
             t.addr = a;
         }
+    }
+}
+
+impl Executor for HttpServer {
+    #[cfg(not(feature = "thread-pool"))]
+    fn executor(&self, stream: TcpStream) {
+        use std::thread;
+
+        thread::spawn(move || {
+            // println!("process stream");
+            Self::parse_stream(stream);
+        });
+        println!("process stream by not thread-pool");
+    }
+
+    #[cfg(feature = "thread-pool")]
+    fn executor(&self, stream: TcpStream) {
+        println!("process stream");
+    }
+}
+
+impl HttpServer {
+    fn parse_stream(mut stream: TcpStream) {
+        let mut buf: Vec<u8> = Vec::new();
+        let _len = Self::parse_stream_to_request(&mut stream, &mut buf);
+        let mut request =
+            request::HttpResuest::from(String::from_utf8_lossy(buf.as_slice()).to_string());
+        request.set_remote_addr(stream.peer_addr().unwrap().to_string().as_str());
+        let rep: String = HttpResponse::default().into();
+        if let Err(e) = stream.write_all(rep.as_bytes()) {
+            println!("response write error: {}", e);
+        }
+    }
+
+    // 读取http请求信息，这个函数可能存在一些bug，比如读取到的数据不完整，需要继续读取
+    fn parse_stream_to_request(stream: &mut TcpStream, buf: &mut Vec<u8>) -> usize {
+        let mut req = [0; 1024];
+        let mut pack_len: usize = 0;
+        // println!("remote ip : {}", stream.peer_addr().unwrap().to_string());
+        while let Ok(len) = stream.read(&mut req) {
+            println!("pack len : {}", len);
+            if len == 0 {
+                break;
+            }
+            pack_len += len;
+            buf.extend_from_slice(&req[..len]);
+            if len < req.len() {
+                break;
+            }
+        }
+        pack_len
     }
 }
 
