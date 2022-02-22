@@ -1,4 +1,6 @@
-use std::net::{TcpListener, TcpStream};
+use std::net::{TcpListener};
+
+use crate::http_server::executor;
 
 #[derive(Debug)]
 pub struct HttpServer {
@@ -25,27 +27,13 @@ impl HttpServer {
             match stream {
                 Ok(stream) => {
                     // stream只对当前请求有效，故在此可转移所有权而非借用
-                    Self::process_stream(stream);
+                    executor::executor(stream);
                 }
                 Err(_e) => {
                     continue;
                 }
             }
         }
-    }
-
-    #[cfg(not(feature = "thread-pool"))]
-    fn process_stream(_stream: TcpStream) {
-        use std::thread;
-        thread::spawn(|| {
-            println!("process stream");
-        });
-        println!("process stream by not thread-pool");
-    }
-
-    #[cfg(feature = "thread-pool")]
-    fn process_stream(stream: &TcpStream) {
-        println!("process stream");
     }
 }
 
