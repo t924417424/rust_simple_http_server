@@ -1,4 +1,3 @@
-use http::http_request;
 use http::http_server::server::HttpServer;
 fn main() {
     println!("Hello, world!");

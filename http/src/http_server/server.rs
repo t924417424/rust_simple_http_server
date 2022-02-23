@@ -10,9 +10,17 @@ use crate::{
 
 use super::executor::Executor;
 
+#[cfg(not(feature = "thread-pool"))]
 #[derive(Debug)]
 pub struct HttpServer {
     addr: String,
+}
+
+#[cfg(feature = "thread-pool")]
+#[derive(Debug)]
+pub struct HttpServer {
+    addr: String,
+    pool: thread_pool::thread_pool::pool::Pool,
 }
 
 impl HttpServer {
@@ -71,6 +79,7 @@ impl Executor for HttpServer {
 
     #[cfg(feature = "thread-pool")]
     fn executor(&self, stream: TcpStream) {
+        let cpu_num = num_cpus::get();
         println!("process stream");
     }
 }
