@@ -39,8 +39,6 @@ impl HttpServer {
     pub fn start(&self) {
         let listener = TcpListener::bind(&self.addr).unwrap();
         println!("http server start at {}", self.addr);
-        // 在这里初始化线程池
-        if cfg!(feature = "thread-pool") {}
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
@@ -63,10 +61,18 @@ impl HttpServer {
             t.addr = a;
         }
     }
+
+    pub fn set_thread_pool_num(num: usize) -> impl FnOnce(&mut Self) {
+        let n = num;
+        // 加入Move强制转移所有权，否则n的生命周期不够长
+        move |t: &mut Self| {
+            t.pool = thread_pool::thread_pool::pool::Pool::new(n);
+        }
+    }
 }
 
+#[cfg(not(feature = "thread-pool"))]
 impl Executor for HttpServer {
-    #[cfg(not(feature = "thread-pool"))]
     fn executor(&self, stream: TcpStream) {
         use std::thread;
 
@@ -76,11 +82,16 @@ impl Executor for HttpServer {
         });
         println!("process stream by not thread-pool");
     }
+}
 
-    #[cfg(feature = "thread-pool")]
+
+#[cfg(feature = "thread-pool")]
+impl Executor for HttpServer {
     fn executor(&self, stream: TcpStream) {
-        let cpu_num = num_cpus::get();
-        println!("process stream");
+        // println!("process stream");
+        self.pool.execute(move || {
+            Self::parse_stream(stream);
+        });
     }
 }
 
@@ -103,7 +114,7 @@ impl HttpServer {
         let mut pack_len: usize = 0;
         // println!("remote ip : {}", stream.peer_addr().unwrap().to_string());
         while let Ok(len) = stream.read(&mut req) {
-            println!("pack len : {}", len);
+            // println!("pack len : {}", len);
             if len == 0 {
                 break;
             }
@@ -117,10 +128,22 @@ impl HttpServer {
     }
 }
 
+#[cfg(not(feature = "thread-pool"))]
 impl Default for HttpServer {
     fn default() -> Self {
         HttpServer {
             addr: "127.0.0.1:8080".parse().unwrap(),
+        }
+    }
+}
+
+#[cfg(feature = "thread-pool")]
+impl Default for HttpServer {
+    fn default() -> Self {
+        let cpu_num = num_cpus::get();
+        HttpServer {
+            addr: "127.0.0.1:8080".parse().unwrap(),
+            pool: thread_pool::thread_pool::pool::Pool::new(cpu_num + 1),
         }
     }
 }
