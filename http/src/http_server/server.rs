@@ -24,10 +24,12 @@ pub struct HttpServer {
 }
 
 impl HttpServer {
+    /// 返回一个HttpServer实例
     pub fn application() -> Self {
         HttpServer::default()
     }
 
+    /// 设置HttpServer参数
     pub fn configure<F>(&mut self, opt: F) -> &mut Self
     where
         F: FnOnce(&mut Self),
@@ -36,6 +38,7 @@ impl HttpServer {
         self
     }
 
+    /// 启动Http服务
     pub fn start(&self) {
         let listener = TcpListener::bind(&self.addr).unwrap();
         println!("http server start at {}", self.addr);
@@ -54,6 +57,7 @@ impl HttpServer {
 }
 
 impl HttpServer {
+    /// 设置HttpServer监听地址，默认值："127.0.0.1:8080" 
     pub fn set_addr(addr: &str) -> impl FnOnce(&mut Self) {
         // 不可直接捕获参数所有权
         let a = addr.to_owned();
@@ -62,6 +66,7 @@ impl HttpServer {
         }
     }
 
+    /// 设置线程池大小，默认线程数：cpu核数 + 1
     pub fn set_thread_pool_num(num: usize) -> impl FnOnce(&mut Self) {
         let n = num;
         // 加入Move强制转移所有权，否则n的生命周期不够长
@@ -83,7 +88,6 @@ impl Executor for HttpServer {
         println!("process stream by not thread-pool");
     }
 }
-
 
 #[cfg(feature = "thread-pool")]
 impl Executor for HttpServer {
