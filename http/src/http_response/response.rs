@@ -14,7 +14,7 @@ impl Default for HttpResponse {
     fn default() -> Self {
         HttpResponse {
             version: Version::V1_1,
-            status_code: HttpStateCode::OK,
+            status_code: HttpStateCode::NotFound,
             headers: {
                 let mut header = HashMap::new();
                 header.insert("Content-Type".to_string(), "text/html".to_string());
@@ -76,13 +76,15 @@ impl From<HttpResponse> for String {
 mod test {
     #[test]
     fn test_http_response_from_str() {
+        use super::HttpStateCode;
         let mut response = super::HttpResponse::new();
         response.insert_header("Content-Type", "text/html");
+        response.set_http_state_code(HttpStateCode::OK);
         response.write_str("<html></html>");
         let response_str: String = response.into();
         assert_eq!(
             response_str,
-            "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html></html>"
+            "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 13\r\n\r\n<html></html>"
         );
     }
 }

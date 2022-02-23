@@ -15,7 +15,6 @@ pub struct Worker {
 impl Worker {
     pub fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>) -> Self {
         let thread = thread::spawn(move || {
-            println!("worker thread {} start", id + 1);
             loop {
                 // 因为receiver会阻塞接受任务，且使用Arc和Mutex来保护，故这里可以使用unwrap来处理，因为并没有返回Err的时机
                 let job = receiver.lock().unwrap().recv().unwrap();

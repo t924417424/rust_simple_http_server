@@ -24,6 +24,7 @@ impl Pool {
         for id in 0..size {
             workers.push(Worker::new(id, receiver.clone()));
         }
+        println!("Number of threads : {}", size);
         Pool {
             _workers: workers,
             sender,

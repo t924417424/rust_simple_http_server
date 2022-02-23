@@ -17,23 +17,6 @@ impl From<&str> for Version {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Method {
-    GET,
-    POST,
-    NoSupport,
-}
-
-impl From<&str> for Method {
-    fn from(method: &str) -> Method {
-        match method {
-            "GET" => Method::GET,
-            "POST" => Method::POST,
-            _ => Method::NoSupport,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Resouse {
     Path(String),
 }
@@ -46,6 +29,8 @@ impl From<&str> for Resouse {
 
 #[cfg(test)]
 mod test {
+    use crate::http_method::method::Method;
+
     use super::*;
     #[test]
     fn test_version() {

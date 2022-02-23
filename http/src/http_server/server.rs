@@ -6,24 +6,27 @@ use std::{
 use crate::{
     http_request::{extend::HttpResuestExtend, request},
     http_response::response::HttpResponse,
+    http_router::router::Router,
 };
 
 use super::executor::Executor;
 
 #[cfg(not(feature = "thread-pool"))]
 #[derive(Debug)]
-pub struct HttpServer {
+pub struct HttpServer<'a> {
     addr: String,
+    router: Router<'a>,
 }
 
 #[cfg(feature = "thread-pool")]
 #[derive(Debug)]
-pub struct HttpServer {
+pub struct HttpServer<'a> {
     addr: String,
+    router: Router<'a>,
     pool: thread_pool::thread_pool::pool::Pool,
 }
 
-impl HttpServer {
+impl<'a> HttpServer<'a> {
     /// 返回一个HttpServer实例
     pub fn application() -> Self {
         HttpServer::default()
@@ -37,6 +40,8 @@ impl HttpServer {
         opt(self);
         self
     }
+
+    pub fn mount_route(&self, route: Router) {}
 
     /// 启动Http服务
     pub fn start(&self) {
@@ -56,18 +61,21 @@ impl HttpServer {
     }
 }
 
-impl HttpServer {
-    /// 设置HttpServer监听地址，默认值："127.0.0.1:8080" 
-    pub fn set_addr(addr: &str) -> impl FnOnce(&mut Self) {
+impl<'a> HttpServer<'a> {
+    /// 设置HttpServer监听地址，默认值："127.0.0.1:8080"
+    pub fn set_addr(addr: &str) -> impl FnOnce(&mut HttpServer<'a>) {
         // 不可直接捕获参数所有权
         let a = addr.to_owned();
         |t: &mut Self| {
             t.addr = a;
         }
     }
+}
 
+#[cfg(feature = "thread-pool")]
+impl<'a> HttpServer<'a> {
     /// 设置线程池大小，默认线程数：cpu核数 + 1
-    pub fn set_thread_pool_num(num: usize) -> impl FnOnce(&mut Self) {
+    pub fn set_thread_pool_num(num: usize) -> impl FnOnce(&mut HttpServer<'a>) {
         let n = num;
         // 加入Move强制转移所有权，否则n的生命周期不够长
         move |t: &mut Self| {
@@ -77,7 +85,7 @@ impl HttpServer {
 }
 
 #[cfg(not(feature = "thread-pool"))]
-impl Executor for HttpServer {
+impl Executor for HttpServer<'_> {
     fn executor(&self, stream: TcpStream) {
         use std::thread;
 
@@ -85,12 +93,12 @@ impl Executor for HttpServer {
             // println!("process stream");
             Self::parse_stream(stream);
         });
-        println!("process stream by not thread-pool");
+        // println!("process stream by not thread-pool");
     }
 }
 
 #[cfg(feature = "thread-pool")]
-impl Executor for HttpServer {
+impl Executor for HttpServer<'_> {
     fn executor(&self, stream: TcpStream) {
         // println!("process stream");
         self.pool.execute(move || {
@@ -99,7 +107,7 @@ impl Executor for HttpServer {
     }
 }
 
-impl HttpServer {
+impl HttpServer<'_> {
     fn parse_stream(mut stream: TcpStream) {
         let mut buf: Vec<u8> = Vec::new();
         let _len = Self::parse_stream_to_request(&mut stream, &mut buf);
@@ -133,20 +141,22 @@ impl HttpServer {
 }
 
 #[cfg(not(feature = "thread-pool"))]
-impl Default for HttpServer {
+impl Default for HttpServer<'_> {
     fn default() -> Self {
         HttpServer {
             addr: "127.0.0.1:8080".parse().unwrap(),
+            router: Router::new(),
         }
     }
 }
 
 #[cfg(feature = "thread-pool")]
-impl Default for HttpServer {
+impl Default for HttpServer<'_> {
     fn default() -> Self {
         let cpu_num = num_cpus::get();
         HttpServer {
             addr: "127.0.0.1:8080".parse().unwrap(),
+            router: Router::new(),
             pool: thread_pool::thread_pool::pool::Pool::new(cpu_num + 1),
         }
     }

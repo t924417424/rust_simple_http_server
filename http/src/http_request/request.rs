@@ -1,7 +1,7 @@
+use super::extend::HttpResuestExtend;
+use crate::http_method::method::Method;
 use crate::http_request::request_header::*;
 use std::collections::HashMap;
-
-use super::extend::HttpResuestExtend;
 #[derive(Debug, PartialEq)]
 pub struct HttpResuest<'a> {
     method: Method,
@@ -81,7 +81,10 @@ impl<'a> HttpResuestExtend for HttpResuest<'a> {
     }
 
     fn get_remote_addr(&self) -> String {
-        self.more.get("remote_addr").unwrap_or(&"".to_string()).to_string()
+        self.more
+            .get("remote_addr")
+            .unwrap_or(&"".to_string())
+            .to_string()
     }
 }
 
@@ -106,10 +109,7 @@ impl<'a> Default for HttpResuest<'a> {
 mod test {
     use std::collections::HashMap;
 
-    use crate::http_request::{
-        request::HttpResuest,
-        request_header::{Method, Version},
-    };
+    use crate::{http_request::{request::HttpResuest, request_header::Version}, http_method::method::Method};
 
     #[test]
     fn test_parse_request() {
