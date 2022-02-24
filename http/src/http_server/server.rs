@@ -42,8 +42,9 @@ impl HttpServer {
         self
     }
 
-    pub fn mount_route(&mut self, route: Router) {
+    pub fn mount_route(&mut self, route: Router) -> &mut Self {
         self.router = Arc::new(route);
+        self
     }
 
     /// 启动Http服务
