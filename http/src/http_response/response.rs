@@ -1,5 +1,7 @@
-use crate::http_response::response_header::{HttpStateCode, Version};
+use crate::http_response::response_header::Version;
 use std::collections::HashMap;
+
+use super::state_code::HttpStateCode;
 #[derive(Debug, PartialEq)]
 pub struct HttpResponse {
     // connection: &'a mut TcpStream,

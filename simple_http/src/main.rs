@@ -1,31 +1,35 @@
-use http::http_server::server::HttpServer;
+use http::{
+    http_method::method::Method,
+    http_request::request::HttpResuest,
+    http_response::response::HttpResponse,
+    http_router::{router::Router, router_handler::RouterHandler},
+    http_server::server::HttpServer,
+};
 fn main() {
-    println!("Hello, world!");
-    let f = |x: i32| x;
-    test_fn(f, 10);
-    println!("{}", test_static("10"));
-    let mut m = 10;
-    match m {
-        1 => println!("one"),
-        2 => println!("two"),
-        3 => println!("three"),
-        ref mut n @ 4..=10 => println!("four to ten {}", n),
-        12 | 11 => println!("eleven"),
-        _ => println!("other"),
-    }
+    // 初始化一个Application
     let mut server = HttpServer::application();
-    server.configure(HttpServer::set_addr("127.0.0.1:8081"));
+    // 创建一个Router
+    let mut router = Router::new();
+    // 将route函数添加到router中
+    router.add_route(RouterHandler::new(Method::GET, "/", |_r, w| {
+        w.write_str("hello world");
+    }));
+    router.add_route(RouterHandler::new(Method::GET, "/hi", route_fn));
+    // 设置Http监听地址，并挂载Router到该服务中
+    server
+        .configure(HttpServer::set_addr("127.0.0.1:8081"))
+        .mount_route(router);
+    // 启动Http服务
     server.start();
     println!("{:?}", server);
 }
 
-fn test_fn<F>(f: F, i: i32)
-where
-    F: Fn(i32) -> i32 + 'static,
-{
-    println!("{}", f(i));
-}
-
-fn test_static<T>(i: T) -> T {
-    i
+fn route_fn(_r: &HttpResuest, w: &mut HttpResponse) {
+    // 输出中文需要添加响应头，否则会出现乱码
+    w.insert_header("Content-Type", "text/html;charset=utf-8");
+    println!("remote addr: {}", _r.get_remote_addr());
+    if let Some(header) = _r.get_header("User-Agent") {
+        println!("User-Agent: {}", header);
+    }
+    w.write_str("你好Rust");
 }

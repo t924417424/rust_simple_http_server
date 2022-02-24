@@ -12,10 +12,16 @@
     - 响应404
     - 响应405
     - 响应500
+- Http请求处理逻辑
+    - 路由功能
+    - 多线处理
+        - 1：1多线程（默认方式）
+        - 线程池（在cargo中指定features = ["thread-pool"]）
+
 
 ### 待实现功能
 - 解析http请求参数
-- tcp处理线程池
+- 路由缓存
 - 解析请求体
 - 文件上传
 - 静态资源访问
@@ -31,7 +37,7 @@
 │      ├─http_response  # 封装http响应相关
 │      ├─http_router    # 路由相关
 │      └─http_server    # http服务器参数配置以及启动相关
-├─simple_http
+├─simple_http           # Demo
 │  └─src
 └─thread_pool           # 封装线程池相关
     └─src

@@ -1,11 +1,12 @@
 use std::{
     io::{Read, Write},
     net::{TcpListener, TcpStream},
+    sync::Arc,
 };
 
 use crate::{
-    http_request::{extend::HttpResuestExtend, request},
-    http_response::response::HttpResponse,
+    http_request::request::{self, HttpResuest},
+    http_response::{response::HttpResponse, state_code::HttpStateCode},
     http_router::router::Router,
 };
 
@@ -13,20 +14,20 @@ use super::executor::Executor;
 
 #[cfg(not(feature = "thread-pool"))]
 #[derive(Debug)]
-pub struct HttpServer<'a> {
+pub struct HttpServer {
     addr: String,
-    router: Router<'a>,
+    router: Arc<Router>,
 }
 
 #[cfg(feature = "thread-pool")]
 #[derive(Debug)]
-pub struct HttpServer<'a> {
+pub struct HttpServer {
     addr: String,
-    router: Router<'a>,
+    router: Arc<Router>,
     pool: thread_pool::thread_pool::pool::Pool,
 }
 
-impl<'a> HttpServer<'a> {
+impl HttpServer {
     /// 返回一个HttpServer实例
     pub fn application() -> Self {
         HttpServer::default()
@@ -41,7 +42,9 @@ impl<'a> HttpServer<'a> {
         self
     }
 
-    pub fn mount_route(&self, route: Router) {}
+    pub fn mount_route(&mut self, route: Router) {
+        self.router = Arc::new(route);
+    }
 
     /// 启动Http服务
     pub fn start(&self) {
@@ -61,9 +64,9 @@ impl<'a> HttpServer<'a> {
     }
 }
 
-impl<'a> HttpServer<'a> {
+impl HttpServer {
     /// 设置HttpServer监听地址，默认值："127.0.0.1:8080"
-    pub fn set_addr(addr: &str) -> impl FnOnce(&mut HttpServer<'a>) {
+    pub fn set_addr(addr: &str) -> impl FnOnce(&mut HttpServer) {
         // 不可直接捕获参数所有权
         let a = addr.to_owned();
         |t: &mut Self| {
@@ -73,9 +76,9 @@ impl<'a> HttpServer<'a> {
 }
 
 #[cfg(feature = "thread-pool")]
-impl<'a> HttpServer<'a> {
+impl HttpServer {
     /// 设置线程池大小，默认线程数：cpu核数 + 1
-    pub fn set_thread_pool_num(num: usize) -> impl FnOnce(&mut HttpServer<'a>) {
+    pub fn set_thread_pool_num(num: usize) -> impl FnOnce(&mut HttpServer) {
         let n = num;
         // 加入Move强制转移所有权，否则n的生命周期不够长
         move |t: &mut Self| {
@@ -85,39 +88,57 @@ impl<'a> HttpServer<'a> {
 }
 
 #[cfg(not(feature = "thread-pool"))]
-impl Executor for HttpServer<'_> {
-    fn executor(&self, stream: TcpStream) {
+impl Executor for HttpServer {
+    fn executor(&self, mut stream: TcpStream) {
         use std::thread;
-
+        let router = self.router.clone();
         thread::spawn(move || {
             // println!("process stream");
-            Self::parse_stream(stream);
+            let request = Self::parse_stream(&mut stream);
+            let mut resp = HttpResponse::default();
+            if let Some(handler_wrap) = router.get_handler(request.method, &request.uri) {
+                let handler = handler_wrap.handler;
+                handler(&request, &mut resp);
+            }
+            let resp_str: String = resp.into();
+            if let Err(e) = stream.write_all(resp_str.as_bytes()) {
+                println!("response write error: {}", e);
+            }
         });
         // println!("process stream by not thread-pool");
     }
 }
 
 #[cfg(feature = "thread-pool")]
-impl Executor for HttpServer<'_> {
-    fn executor(&self, stream: TcpStream) {
+impl Executor for HttpServer {
+    fn executor(&self, mut stream: TcpStream) {
         // println!("process stream");
+        let router = self.router.clone();
         self.pool.execute(move || {
-            Self::parse_stream(stream);
+            let request = Self::parse_stream(&mut stream);
+            let mut resp = HttpResponse::default();
+            if let Some(handler_wrap) = router.get_handler(request.method, &request.uri) {
+                resp.set_http_state_code(HttpStateCode::OK);
+                let handler = handler_wrap.handler;
+                handler(&request, &mut resp);
+            }
+            let resp_str: String = resp.into();
+            if let Err(e) = stream.write_all(resp_str.as_bytes()) {
+                println!("response write error: {}", e);
+            }
         });
     }
 }
 
-impl HttpServer<'_> {
-    fn parse_stream(mut stream: TcpStream) {
+impl HttpServer {
+    fn parse_stream(stream: &mut TcpStream) -> HttpResuest {
         let mut buf: Vec<u8> = Vec::new();
-        let _len = Self::parse_stream_to_request(&mut stream, &mut buf);
+        let _len = Self::parse_stream_to_request(stream, &mut buf);
         let mut request =
             request::HttpResuest::from(String::from_utf8_lossy(buf.as_slice()).to_string());
         request.set_remote_addr(stream.peer_addr().unwrap().to_string().as_str());
-        let rep: String = HttpResponse::default().into();
-        if let Err(e) = stream.write_all(rep.as_bytes()) {
-            println!("response write error: {}", e);
-        }
+        // s.router.get_handler(request.method, &request.uri);
+        request
     }
 
     // 读取http请求信息，这个函数可能存在一些bug，比如读取到的数据不完整，需要继续读取
@@ -141,22 +162,22 @@ impl HttpServer<'_> {
 }
 
 #[cfg(not(feature = "thread-pool"))]
-impl Default for HttpServer<'_> {
+impl Default for HttpServer {
     fn default() -> Self {
         HttpServer {
             addr: "127.0.0.1:8080".parse().unwrap(),
-            router: Router::new(),
+            router: Arc::new(Router::new()),
         }
     }
 }
 
 #[cfg(feature = "thread-pool")]
-impl Default for HttpServer<'_> {
+impl Default for HttpServer {
     fn default() -> Self {
         let cpu_num = num_cpus::get();
         HttpServer {
             addr: "127.0.0.1:8080".parse().unwrap(),
-            router: Router::new(),
+            router: Arc::new(Router::new()),
             pool: thread_pool::thread_pool::pool::Pool::new(cpu_num + 1),
         }
     }

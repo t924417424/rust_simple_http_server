@@ -1,15 +1,14 @@
-use super::extend::HttpResuestExtend;
 use crate::http_method::method::Method;
 use crate::http_request::request_header::*;
 use std::collections::HashMap;
 #[derive(Debug, PartialEq)]
 pub struct HttpResuest<'a> {
-    method: Method,
-    uri: String,
-    version: Version,
-    headers: HashMap<String, String>,
-    body: Option<String>,
-    more: HashMap<&'a str, String>,
+    pub(crate) method: Method,
+    pub(crate) uri: String,
+    pub(crate) version: Version,
+    pub(crate) headers: HashMap<String, String>,
+    pub(crate) body: Option<String>,
+    pub(crate) more: HashMap<&'a str, String>,
 }
 
 impl<'a> From<String> for HttpResuest<'a> {
@@ -73,20 +72,30 @@ impl<'a> HttpResuest<'a> {
     pub fn get_body(&self) -> Option<&str> {
         self.body.as_ref().map(|value| value.as_str())
     }
-}
-
-impl<'a> HttpResuestExtend for HttpResuest<'a> {
-    fn set_remote_addr(&mut self, addr: &str) {
+    pub(crate) fn set_remote_addr(&mut self, addr: &str) {
         self.more.insert("remote_addr", addr.to_owned());
     }
 
-    fn get_remote_addr(&self) -> String {
+    pub fn get_remote_addr(&self) -> String {
         self.more
             .get("remote_addr")
             .unwrap_or(&"".to_string())
             .to_string()
     }
 }
+
+// impl<'a> HttpResuestExtend for HttpResuest<'a> {
+//     pub(crate) fn set_remote_addr(&mut self, addr: &str) {
+//         self.more.insert("remote_addr", addr.to_owned());
+//     }
+
+//     fn get_remote_addr(&self) -> String {
+//         self.more
+//             .get("remote_addr")
+//             .unwrap_or(&"".to_string())
+//             .to_string()
+//     }
+// }
 
 impl<'a> Default for HttpResuest<'a> {
     fn default() -> Self {
