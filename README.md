@@ -7,11 +7,8 @@
     - Post
     - Get
 - 响应http请求
-    - 响应200
-    - 响应400
-    - 响应404
-    - 响应405
-    - 响应500
+    
+    [已将Http协议常用状态码封装](./http/src/http_response/state_code.rs)
 - Http请求处理逻辑
     - 路由功能
     - 多线处理
