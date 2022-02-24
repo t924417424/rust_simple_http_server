@@ -118,7 +118,7 @@ impl Executor for HttpServer {
             let request = Self::parse_stream(&mut stream);
             let mut resp = HttpResponse::default();
             if let Some(handler_wrap) = router.get_handler(request.method, &request.uri) {
-                resp.set_http_state_code(HttpStateCode::OK);
+                resp.set_http_state_code(HttpStateCode::StatusOK);
                 let handler = handler_wrap.handler;
                 handler(&request, &mut resp);
             }

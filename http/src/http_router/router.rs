@@ -25,18 +25,27 @@ impl Router {
     ///
     /// 1:使用闭包方式注册
     /// ```
+    /// use http::{
+    ///     http_method::method::Method,
+    ///     http_request::request::HttpResuest,
+    ///     http_response::response::HttpResponse,
+    ///     http_router::{router::Router, router_handler::RouterHandler},
+    ///     http_server::server::HttpServer,
+    /// };
     /// let mut router = Router::new();
     /// router.add_route(RouterHandler::new(Method::GET, "/", |_r, w| {
     ///     w.write_str("hello world");
     /// }));
     /// ```
     /// 2:通过函数方式注册
+    /// ```
     /// router.add_route(RouterHandler::new(Method::GET, "/hi", route_fn));
     /// fn route_fn(_r: &HttpResuest, w: &mut HttpResponse) {
     /// 输出中文需要添加响应头，否则会出现乱码
     ///     w.insert_header("Content-Type", "text/html;charset=utf-8");
     ///     w.write_str("你好Rust");
     /// }
+    /// ```
     pub fn add_route(&mut self, handler: RouterHandler) {
         // let paths = Self::split_path(path);
         self.routes.push(Box::new(handler));

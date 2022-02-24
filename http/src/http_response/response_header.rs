@@ -62,25 +62,11 @@ mod test {
 
     #[test]
     fn http_state_code_to_text() {
-        assert_eq!(String::from(HttpStateCode::OK), "OK");
-        assert_eq!(String::from(HttpStateCode::BadRequest), "Bad Request");
-        assert_eq!(String::from(HttpStateCode::NotFound), "Not Found");
-        assert_eq!(
-            String::from(HttpStateCode::MethodNotAllowed),
-            "Method Not Allowed"
-        );
-        assert_eq!(
-            String::from(HttpStateCode::InternalServerError),
-            "Internal Server Error"
-        );
+        assert_eq!(String::from(HttpStateCode::StatusOK), "OK");
     }
 
     #[test]
     fn http_state_code_to_u16() {
-        assert_eq!(u16::from(HttpStateCode::OK), 200);
-        assert_eq!(u16::from(HttpStateCode::BadRequest), 400);
-        assert_eq!(u16::from(HttpStateCode::NotFound), 404);
-        assert_eq!(u16::from(HttpStateCode::MethodNotAllowed), 405);
-        assert_eq!(u16::from(HttpStateCode::InternalServerError), 500);
+        assert_eq!(u16::from(HttpStateCode::StatusOK), 200);
     }
 }

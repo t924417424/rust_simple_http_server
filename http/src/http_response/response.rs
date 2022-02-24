@@ -6,7 +6,7 @@ use super::state_code::HttpStateCode;
 pub struct HttpResponse {
     // connection: &'a mut TcpStream,
     pub version: Version,
-    pub status_code: HttpStateCode,
+    pub status_code: u16,
     pub headers: HashMap<String, String>,
     pub body: Option<String>,
 }
@@ -16,7 +16,7 @@ impl Default for HttpResponse {
     fn default() -> Self {
         HttpResponse {
             version: Version::V1_1,
-            status_code: HttpStateCode::NotFound,
+            status_code: HttpStateCode::StatusNotFound.into(),
             headers: {
                 let mut header = HashMap::new();
                 header.insert("Content-Type".to_string(), "text/html".to_string());
@@ -32,7 +32,7 @@ impl HttpResponse {
         HttpResponse::default()
     }
     pub fn set_http_state_code(&mut self, status_code: HttpStateCode) -> &mut Self {
-        self.status_code = status_code;
+        self.status_code = status_code.into();
         self
     }
     pub fn write_str(&mut self, body: &str) -> &mut Self {
@@ -47,8 +47,9 @@ impl HttpResponse {
 
 impl From<HttpResponse> for String {
     fn from(http_response: HttpResponse) -> Self {
-        let http_code: u16 = http_response.status_code.into();
-        let code_text: String = http_response.status_code.into();
+        let http_code: u16 = http_response.status_code;
+        let tmp: HttpStateCode = http_response.status_code.into();
+        let code_text: String = tmp.into();
         let mut response_str = format!(
             "{} {} {}\r\n",
             String::from(http_response.version),
@@ -81,7 +82,7 @@ mod test {
         use super::HttpStateCode;
         let mut response = super::HttpResponse::new();
         response.insert_header("Content-Type", "text/html");
-        response.set_http_state_code(HttpStateCode::OK);
+        response.set_http_state_code(HttpStateCode::StatusOK);
         response.write_str("<html></html>");
         let response_str: String = response.into();
         assert_eq!(
