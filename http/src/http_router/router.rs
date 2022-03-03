@@ -36,12 +36,8 @@ impl Router {
     /// router.add_route(RouterHandler::new(Method::GET, "/", |_r, w| {
     ///     w.write_str("hello world");
     /// }));
-    /// ```
-    /// 2:通过函数方式注册
-    /// ```
     /// router.add_route(RouterHandler::new(Method::GET, "/hi", route_fn));
     /// fn route_fn(_r: &HttpResuest, w: &mut HttpResponse) {
-    /// 输出中文需要添加响应头，否则会出现乱码
     ///     w.insert_header("Content-Type", "text/html;charset=utf-8");
     ///     w.write_str("你好Rust");
     /// }
